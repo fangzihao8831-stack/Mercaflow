@@ -1,0 +1,16 @@
+.env
+archive/
+node_modules/
+__pycache__/
+*.pyc
+.next/
+dist/
+temp/
+*.log
+.cache/
+.pi/skills/
+evals/comparison-v2/
+evals/hallucinations-v2/
+evals/laundry-basket-test/
+test-products/
+picset-token.json
