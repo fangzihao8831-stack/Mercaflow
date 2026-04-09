@@ -25,3 +25,8 @@ picset-login-page.png
 temp_grid_48.png
 meli/.tokens.json
 evals/picset-token.json
+*.png
+picset-*.txt
+drive-*.png
+snapshot-*.md
+drive-snapshot.md

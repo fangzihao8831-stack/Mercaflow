@@ -103,6 +103,7 @@ def run_pipeline(image_paths, image_type='detail', image_count=None,
         print(f'═══ Step 0: Skipped (requirements provided) ═══', flush=True)
 
     # ── Step 1: Analyze ──
+    time.sleep(20)  # cooldown between API calls
     print(f'\n═══ Step 1: Analyze ({image_type}, {image_count} images, lang={target_language}) ═══', flush=True)
     t1_start = time.time()
     analysis = analyze(
@@ -131,6 +132,7 @@ def run_pipeline(image_paths, image_type='detail', image_count=None,
     }
 
     # ── Step 2: Expand ──
+    time.sleep(20)  # cooldown between API calls
     print(f'\n═══ Step 2: Expand (Chinese → English structured prompts) ═══', flush=True)
     t2 = time.time()
     expanded = expand(

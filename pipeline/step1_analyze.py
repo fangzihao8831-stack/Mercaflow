@@ -23,12 +23,8 @@ PROMPTS_DIR = Path(__file__).parent.parent / 'prompts'
 _DETAIL_TEMPLATE = (PROMPTS_DIR / 'picset-detail-analysis-prompt.txt').read_text(encoding='utf-8')
 _MAIN_TEMPLATE = (PROMPTS_DIR / 'picset-main-analysis-prompt.txt').read_text(encoding='utf-8')
 
-_client = None
 def _get_client():
-    global _client
-    if _client is None:
-        _client = get_client()
-    return _client
+    return get_client()
 
 
 def _detect_mime(path):

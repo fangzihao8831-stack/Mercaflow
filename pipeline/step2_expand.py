@@ -22,12 +22,8 @@ PROMPTS_DIR = Path(__file__).parent.parent / 'prompts'
 # Load the static generator template once
 _GENERATOR_TEMPLATE = (PROMPTS_DIR / 'picset-generator-template.txt').read_text(encoding='utf-8')
 
-_client = None
 def _get_client():
-    global _client
-    if _client is None:
-        _client = get_client()
-    return _client
+    return get_client()
 
 
 def _build_dynamic_input(analysis_result):

@@ -21,13 +21,8 @@ from vertex_client import get_client, GENERATION_MODEL
 from pipeline.config import DEFAULTS
 from pipeline.retry import with_retry
 
-# Singleton client for parallel workers
-_client = None
 def _get_client():
-    global _client
-    if _client is None:
-        _client = get_client()
-    return _client
+    return get_client()
 
 
 def _detect_mime(path):
