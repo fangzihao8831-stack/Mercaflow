@@ -21,6 +21,9 @@ from pydantic import BaseModel
 # Add parent dir to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from google.genai import types
+from vertex_client import get_client, PLANNING_MODEL, GENERATION_MODEL, PROJECT, LOCATION
+
 app = FastAPI(title="MercaFlow API", version="0.1.0")
 
 app.add_middleware(
@@ -49,13 +52,8 @@ def get_prompt(image_count: int, target_language: str, requirements: str) -> str
         .replace("{REQUIREMENTS}", requirements)
     )
 
-def get_vertex_token() -> str:
-    """Get access token from gcloud for Vertex AI."""
-    result = subprocess.run(
-        ["gcloud", "auth", "print-access-token"],
-        capture_output=True, text=True, timeout=10
-    )
-    return result.stdout.strip()
+# Vertex AI client (uses ADC — gcloud auth application-default login)
+gemini = get_client()
 
 
 class GenerationConfig(BaseModel):
@@ -85,7 +83,14 @@ generation_results: dict = {}
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "vertex_ai": "pending_billing"}
+    return {
+        "status": "ok",
+        "vertex_ai": "active",
+        "project": PROJECT,
+        "location": LOCATION,
+        "planning_model": PLANNING_MODEL,
+        "generation_model": GENERATION_MODEL,
+    }
 
 
 @app.post("/upload")

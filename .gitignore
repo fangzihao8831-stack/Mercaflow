@@ -14,3 +14,14 @@ evals/hallucinations-v2/
 evals/laundry-basket-test/
 test-products/
 picset-token.json
+evals/picset-capture*.json
+evals/picset-ai-write-response.json
+.pi-handoff/captures/
+.playwright-mcp/
+.ralph/
+.claude/
+output/
+picset-login-page.png
+temp_grid_48.png
+meli/.tokens.json
+evals/picset-token.json

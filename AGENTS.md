@@ -8,8 +8,10 @@ Automated e-commerce product photography and listing pipeline for MercadoLibre M
 - **Use PicSet's exact prompt template** from `prompts/analysis-prompt.txt` — never write custom prompts
 - **Use `response_mime_type="application/json"`** for all planning calls — eliminates parsing failures
 - **One prompt file, one source of truth** — never hardcode prompts in scripts
-- **Use Vertex AI endpoints** (`aiplatform.googleapis.com`) — NOT Gemini Developer API (disabled)
-- **API keys live in `.env`** — never put secrets in this file or scripts
+- **Always use `vertex_client.get_client()`** — never `genai.Client(api_key=...)`. Vertex AI via ADC, never API keys
+- **Location MUST be `global`** for Gemini 3 preview models — regional endpoints (us-central1, etc.) return 404
+- **Never enable `generativelanguage.googleapis.com`** — that's the Developer API path that bypasses Free Trial credits and charges your card directly
+- **Secrets live in `.env`** — never put secrets in this file or scripts
 - **Use Chinese terminology**: 详情图要求, 整体设计规范, 图片规划, 产品复杂结构判定
 - **Never create multiple pipeline scripts** — one clean `pipeline.py`, iterate on it
 - **Every plan JSON must include metadata** (model, temperature, requirements, timestamp)
@@ -25,7 +27,7 @@ Gemini Flash (planning) → 整体设计规范 + 图片规划 (structured JSON)
         ↓
 Gemini Pro (generation) → images (parallel, 30 workers max)
         ↓
-Claude (validation) → structural hallucination check using evaluator prompt
+Gemini Flash (validation) → strict 8-step physical-property check using evaluator prompt
 ```
 
 ### Planning Step
@@ -42,25 +44,29 @@ Claude (validation) → structural hallucination check using evaluator prompt
 - Use ThreadPoolExecutor for parallel generation
 
 ### Validation Step
-- Model: Claude (via Anthropic OAuth)
-- Prompt: `prompts/evaluator-prompt.txt`
-- Checks physical properties (thickness, binding, material), structural integrity, product identity
-- OAuth requires: `Authorization: Bearer {key}`, headers `anthropic-beta: claude-code-20250219,oauth-2025-04-20`, system block `"You are Claude Code, Anthropic's official CLI for Claude."`
+- Module: `evaluator.py` — single entry point `score_image(ref_path, gen_path)`
+- Model: `gemini-3-flash-preview` via Vertex AI (same client as planning)
+- Prompt: `prompts/evaluator-prompt.txt` — loaded once at import, sent as `system_instruction`
+- Output: structured JSON with `final_score`, `physical_match`, `structure_match`, `identity_match`, `differences[]`, `verdict` (ship/review/reject), `critical_issue`
+- Forces 8-step reasoning chain (product identification → property extraction → diff → failure mode rules → self-check → final score)
+- Cost: ~€0.002 per call, ~€0.30 for full 144-image rerun
 
 ## API Configuration
-- All keys in `.env` file — load with `dotenv` or manual read
-- **Vertex AI**: authenticate via `gcloud auth print-access-token`, NOT API key
-- **Gemini Developer API**: DISABLED on project (per Google Support)
-- **Anthropic OAuth**: token expires, refresh from `.pi/agent/auth.json`
+- **Vertex AI**: ADC-based auth via `gcloud auth application-default login`. No API keys.
+- **Helper**: `vertex_client.py` is the single source of truth for project, location, and model names
+- **Models**: `PLANNING_MODEL=gemini-3-flash-preview`, `GENERATION_MODEL=gemini-3-pro-image-preview`
+- **Location**: `global` (Gemini 3 preview models do not exist on regional endpoints)
+- **Generative Language API**: DISABLED on the project — keep it that way
+
 - **PicSet**: anon key is permanent, access token expires (refresh from browser localStorage)
-- Google Cloud Project: see `.env` for project ID
+- Google Cloud Project ID: see `.env`
 
 ## Billing Status
-- Billing account suspended — refund in progress (3-5 business days, Case #69012899)
-- €242.60 Free Trial credit covers Vertex AI (including image generation)
-- €848.21 GenAI App Builder credit covers Vertex AI Search ONLY
-- Gemini Developer API NOT covered by any credits (policy since March 2, 2026)
-- Must re-link billing to project after refund completes
+- **Resolved**: New GCP account active (project + billing in `.env`), old account abandoned
+- **Free Trial credit**: ~€260 valid for 90 days from new signup
+- **Vertex AI Gemini 3 preview models ARE covered** by Free Trial credits — verified against the official exclusion list at docs.cloud.google.com/free/docs/free-cloud-features
+- **Excluded from Free Trial** (DO NOT USE): Gemini Developer API (AI Studio), partner generative AI MaaS models, GPUs, Cloud Marketplace, Windows VMs
+- Account is in "Paid account" mode (not "Free Trial" mode) — credits still apply but card is reachable if credits run out or non-covered services are used. Two budget alerts active: €1 gross-spend tripwire and €260 net-charge tripwire
 
 ## Business Context
 - Import from AOSHIDA (usstore.tooerp.com/AOSHIDA) → brother's warehouse → Mercado FULL
@@ -94,16 +100,19 @@ MercaFlow/
 ├── README.md                          ← project overview
 ├── prompts/
 │   ├── analysis-prompt.txt            ← PicSet's exact planning prompt
-│   └── evaluator-prompt.txt           ← strict physical property evaluator
+│   └── evaluator-prompt.txt           ← strict physical property evaluator (8-step task flow)
+├── vertex_client.py                   ← centralized Vertex AI client (get_client + model names)
+├── evaluator.py                       ← Gemini Flash evaluator (Vertex, replaces Claude OAuth)
 ├── generate-all-parallel.py           ← parallel image generation (30 workers)
 ├── run-comparison-v2.py               ← PicSet vs Ours comparison pipeline
+├── api/
+│   └── server.py                      ← FastAPI backend (Vertex client wired, /analyze /generate still mock)
+├── ui/                                ← Vite + React + Tailwind UI
 ├── evals/
 │   ├── comparison-v2/                 ← 144 images + scores (9 products × 8 imgs × 2 sources)
-│   ├── hallucinations-v2/             ← flagged hallucination images + references
-│   └── laundry-basket-test/           ← original test from previous session
+│   └── hallucinations-v2/             ← flagged hallucination images + references
 ├── test-products/stationery/          ← 10 supplier catalog images
-├── docs/                              ← 17 crawled MeLi developer docs
-└── archive/                           ← old scripts and outputs
+└── docs/                              ← 17 crawled MeLi developer docs
 ```
 
 ## Known Issues & Patterns
@@ -132,6 +141,7 @@ MercaFlow/
 - Other variants never appear as main subject unless seller requests it
 
 ## What's Built
+- [x] Vertex AI migration (vertex_client.py + ADC + location='global', verified end-to-end)
 - [x] PicSet's exact prompt template
 - [x] Planning: Gemini Flash with structured JSON output
 - [x] Generation: Gemini Pro with parallel workers (30 workers, 150 RPM)
@@ -149,7 +159,7 @@ MercaFlow/
 - **API**: FastAPI backend at `api/server.py` — run with `python -m uvicorn api.server:app --port 8000 --reload`
 - **UI Design doc**: `docs/ui-design.md` — full wireframe and component hierarchy
 - UI has: image upload, image count slider (3-10), model selector (NB Pro/NB 2/NB), aspect ratio, resolution, language, advanced settings (planning model, temperature, variant detection, auto-retry, parallel workers)
-- All mock data for now — real Vertex AI calls wired up when billing returns
+- `api/server.py` uses Vertex AI client (real generation works); `/analyze` and `/generate` endpoints still return mock data — needs wiring to real client calls
 - WebSocket endpoint `/ws/generate` for real-time image streaming
 - **ui-ux-pro-max-skill** installed at `.pi/skills/` for design intelligence
 
@@ -184,7 +194,6 @@ MercaFlow/
 - Google billing: refund pending 3-5 days, must use Vertex AI (not Gemini Developer API), Generative Language API disabled on project
 
 ## What's NOT Built
-- [ ] Vertex AI migration (code changes for new endpoints)
 - [ ] Catalog image preprocessing (variant detection, crop)
 - [ ] Per-variant shot planning
 - [ ] Automated retry loop with prompt correction

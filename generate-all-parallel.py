@@ -6,11 +6,10 @@ Uses parallel generation (concurrent.futures) to maximize throughput
 import sys, io, json, os, time
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from google import genai
 from google.genai import types
+from vertex_client import get_client, GENERATION_MODEL
 
-GEMINI_KEY = os.environ.get('GEMINI_API_KEY', '')
-gemini = genai.Client(api_key=GEMINI_KEY)
+gemini = get_client()
 BASE_DIR = 'evals/comparison-v2'
 
 def generate_one(args):
@@ -20,7 +19,7 @@ def generate_one(args):
     try:
         ref_part = types.Part.from_bytes(data=ref_bytes, mime_type='image/jpeg')
         resp = gemini.models.generate_content(
-            model='gemini-3-pro-image-preview',
+            model=GENERATION_MODEL,
             config=types.GenerateContentConfig(
                 response_modalities=['IMAGE'],
                 system_instruction=specs + "\n\n请根据以上参考照片中的真实产品，生成一张1:1正方形的电商产品场景图。必须严格还原产品的真实外观、结构和细节，不得添加或省略任何部件。",
