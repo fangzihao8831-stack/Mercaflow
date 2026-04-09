@@ -4,21 +4,22 @@
   【预处理步骤 — 执行前必读】
   为每张图生成提示词前，从 design_content 中读取：
   ① **产品复杂结构判定**（true/false）
-  ② 若为 true，同时读取 **选择视角** 
+  ② 若为 true，同时读取 **选择视角**
   后续所有【条件规则】均以上述值为准。
-  
-  
+
+
   关键规则：
   1. 每条提示词必须为 250-350 个英文单词
   2. 提示词中的文字内容（标题、描述、文案）必须保留为指定的目标语言，不得翻译为英文
-  3. 严格按照以下 11 个要素的顺序组织结构：
-    - 主体（Subject）： 来自参考图的产品，须保持严格的结构一致性。必须包含以下两句话：
-      i. "本图中的主体必须与参考图中的 [产品名称/物体] 严格一致,产品的形态、外形、颜色、材质、零件数量、连接关系、机械结构必须与参考图完全一致，不得做任何改变。"
-      ii. "严格还原参考图中产品的所有色彩，不做任何修改。产品本体、各组件、表面及质感的颜色必须与参考图完全一致。"
-  【条件规则/true】 若当前 design_content 中 **产品复杂结构判定** 为 true，则还须加入以下约束："禁止对参考物品进行任何变形和机械结构改变。严格保留参考图中肉眼可见的所有产品细节。禁止对参考图中未直接呈现的任何功能、内部结构或产品特征进行推断或假设， 禁止在描述中加入参考图中不存在的结构、零件或形态特征。"
+  3. 整条提示词除了目标语言的文案内容外，其余所有描述、约束、指令必须全部使用英文，不得出现中文
+  4. 严格按照以下 11 个要素的顺序组织结构：
+    - 主体（Subject）： 来自参考图的产品，须保持严格的结构一致性。必须包含以下英文约束：
+      i. "The subject in this image must be strictly consistent with the [产品名称 in English] in the reference image. The shape, form, color, material, number of parts, connection relationships, and mechanical structure must be exactly the same as the reference image, without any changes."
+      ii. "Strictly restore all colors of the product in the reference image without any modification. The colors of the product body, components, surfaces, and textures must be completely consistent with the reference image."
+  【条件规则/true】 若当前 design_content 中 **产品复杂结构判定** 为 true，则还须加入以下英文约束："Do not deform or alter any mechanical structure of the reference product. Strictly preserve all product details visible in the reference image. Do not infer or assume any functions, internal structures, or product features not directly shown in the reference image. Do not add structures, parts, or morphological features that do not exist in the reference image."
     - 构图（Composition）： 布局细节，包含具体的百分比和位置信息。
   【条件规则/true】 若当前 design_content 中 **产品复杂结构判定** 为 true，则须在本段末尾加入：
-  末尾加入："本张图的构图视角为:[从 design_content **选用视角**读取并填入]"
+  末尾加入："The composition viewing angle for this image is: [从 design_content **选用视角**读取并翻译为英文填入]"
   若为 false，则不加上述约束，保持正常创意自由度。
     - 背景（Background）： 分层纵深描述，包含前景/中景/远景
     - 灯光（Lighting）： 多光源设置，包含角度和光质
@@ -28,8 +29,8 @@
     - 嵌入图片（Inset Images）： 如有，需包含详细规格（形状、尺寸、位置、内容）
     - 氛围（Atmosphere）： 来自设计规格的关键词
     - 风格（Style）： 来自设计规格（摄影风格、艺术方向）
-    - 品质（Quality）： 技术参数（分辨率、镜头、相机设置）。颜色保真：必须生成参考图中颜色的产品。结构保真度：严格复制参考图中产品的精确物理结构，匹配所有组件的精确数量、位置、比例和空间关系，每个元素必须在几何上精确且在现实世界中物理可实现，不得添加、移除、合并或变形任何结构元素。
- 
+    - 品质（Quality）： 技术参数（分辨率、镜头、相机设置）。Color fidelity: the generated product must match the exact colors from the reference image. Structure fidelity: strictly replicate the exact physical structure of the product in the reference image, matching the precise number, position, proportion, and spatial relationships of all components. Every element must be geometrically precise. Do not add, remove, merge, or deform any structural element.
+
   输出必须为 JSON 数组，且提示词数量必须与指定数量完全一致：
   [
     {"prompt": "完整的 250-350 词英文提示词，其中文字内容使用目标语言..." }

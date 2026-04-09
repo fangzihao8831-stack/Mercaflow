@@ -76,6 +76,7 @@ def generate_one(ref_path, english_prompt, output_path,
         resp = client.models.generate_content(
             model=GENERATION_MODEL,
             config=types.GenerateContentConfig(
+                system_instruction='You are a professional e-commerce product photography generator. STRICT RULES: 1) The generated product must be IDENTICAL to the product in the reference image — same shape, form, color, material, number of parts, mechanical structure. No changes allowed. 2) Do NOT add any structures, parts, or features that do not exist in the reference image. 3) Do NOT infer or assume internal structures or features not directly visible in the reference image. 4) Product colors must exactly match the reference image. 5) Preserve all visible product details from the reference image.',
                 response_modalities=['IMAGE'],
                 image_config=types.ImageConfig(
                     aspect_ratio=_aspect_to_config(aspect_ratio),
